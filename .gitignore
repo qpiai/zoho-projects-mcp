@@ -1,0 +1,50 @@
+# Environment Variables & Credentials
+.env
+.env.local
+.env.*.local
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Docker Files (excluded as requested)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build Artifacts
+dist/
+*.js.map
+*.tsbuildinfo
+
+# IDE & Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Claude Code Local Settings
+.claude/
+.claude-settings.json
+
+# Test Scripts (local development only)
+test-*.js
+test-*.sh
+*.test.js
+*.spec.js
+
+# Temporary Files
+*.tmp
+*.temp
+coverage/
+.nyc_output/
+
+# System Files
+Thumbs.db
+.DS_Store
