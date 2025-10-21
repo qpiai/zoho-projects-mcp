@@ -49,21 +49,120 @@ A Model Context Protocol (MCP) server that provides integration with Zoho Projec
 
 ## Setup
 
-### 1. Get Zoho OAuth Credentials
+### 1. Get Zoho OAuth Credentials (Detailed Guide)
 
-1. Go to [Zoho Developer Console](https://api-console.zoho.com/)
-2. Create a new application (choose "Server-based Applications" or "Self Client")
-3. Note down your `Client ID` and `Client Secret`
-4. Generate an OAuth token with the required scopes:
-   - `ZohoProjects.portals.ALL`
-   - `ZohoProjects.projects.ALL`
-   - `ZohoProjects.tasks.ALL`
-   - `ZohoProjects.bugs.ALL`
-   - `ZohoProjects.milestones.ALL`
+#### Step 1: Create a Zoho Developer Application
 
-### 2. Choose Your Setup Method
+1. Go to [Zoho API Console](https://api-console.zoho.com/)
+2. Click **"Add Client"** button
+3. Choose **"Self Client"** (recommended for personal use) or **"Server-based Applications"**
+4. Fill in the application details:
+   - **Client Name**: e.g., "Zoho Projects MCP"
+   - **Homepage URL**: Your website or `http://localhost` for testing
+   - **Authorized Redirect URIs**: `http://localhost:8080/callback` (or your preferred redirect URL)
+5. Click **"Create"** and note down:
+   - **Client ID** (e.g., `1000.XXXXXXXXXX`)
+   - **Client Secret** (keep this secure!)
 
-You can run this MCP server in two ways:
+#### Step 2: Generate Authorization Code
+
+1. Build the authorization URL with required scopes:
+   ```
+   https://accounts.zoho.{REGION}/oauth/v2/auth?
+     scope=ZohoProjects.portals.ALL,ZohoProjects.projects.ALL,ZohoProjects.tasks.ALL,ZohoProjects.bugs.ALL,ZohoProjects.milestones.ALL,ZohoProjects.users.READ,ZohoSearch.securesearch.READ
+     &client_id=YOUR_CLIENT_ID
+     &response_type=code
+     &access_type=offline
+     &redirect_uri=YOUR_REDIRECT_URI
+   ```
+
+   Replace `{REGION}` with your region:
+   - US: `com`
+   - EU: `eu`
+   - IN: `in`
+   - AU: `com.au`
+   - CN: `com.cn`
+
+2. Open this URL in your browser
+3. Log in to your Zoho account and authorize the application
+4. You'll be redirected to your redirect URI with a **code** parameter in the URL:
+   ```
+   http://localhost:8080/callback?code=1000.XXXXX.XXXXX&location=in&accounts-server=https://accounts.zoho.in
+   ```
+5. Copy the `code` value (valid for ~2 minutes, use it immediately!)
+
+#### Step 3: Exchange Code for Tokens
+
+Use this curl command to get your access and refresh tokens:
+
+```bash
+curl -X POST https://accounts.zoho.{REGION}/oauth/v2/token \
+  -d "code=YOUR_AUTHORIZATION_CODE" \
+  -d "client_id=YOUR_CLIENT_ID" \
+  -d "client_secret=YOUR_CLIENT_SECRET" \
+  -d "redirect_uri=YOUR_REDIRECT_URI" \
+  -d "grant_type=authorization_code"
+```
+
+Response will contain:
+```json
+{
+  "access_token": "1000.xxxx.yyyy",
+  "refresh_token": "1000.zzzz.aaaa",
+  "expires_in": 3600,
+  "api_domain": "https://www.zohoapis.in",
+  "token_type": "Bearer"
+}
+```
+
+**Important:** Save both tokens:
+- **access_token**: Valid for 1 hour (auto-refreshed by the server)
+- **refresh_token**: Long-lived, used to get new access tokens
+
+#### Step 4: Find Your Portal ID
+
+**Method 1: From URL**
+1. Go to your Zoho Projects in browser
+2. Look at the URL: `https://projects.zoho.{REGION}/portal/{PORTAL_ID}/...`
+3. The number after `/portal/` is your Portal ID (e.g., `60028147039`)
+
+**Method 2: Using API**
+```bash
+curl -X GET https://projectsapi.zoho.{REGION}/api/v3/portals \
+  -H "Authorization: Zoho-oauthtoken YOUR_ACCESS_TOKEN"
+```
+
+Response will list all your portals with their IDs.
+
+#### Step 5: Verify Credentials
+
+Test your setup with this API call:
+```bash
+curl -X GET https://projectsapi.zoho.{REGION}/api/v3/portal/YOUR_PORTAL_ID/projects \
+  -H "Authorization: Zoho-oauthtoken YOUR_ACCESS_TOKEN"
+```
+
+**Expected:** JSON response with your projects list
+**If error:** Check token, portal ID, and API domain match your region
+
+#### Required Scopes Summary
+
+Make sure your OAuth token has these scopes:
+- ✅ `ZohoProjects.portals.ALL` - Portal operations
+- ✅ `ZohoProjects.projects.ALL` - Project management
+- ✅ `ZohoProjects.tasks.ALL` - Task management
+- ✅ `ZohoProjects.bugs.ALL` - Issue/bug management
+- ✅ `ZohoProjects.milestones.ALL` - Milestone/phase management
+- ✅ `ZohoProjects.users.READ` - User information
+- ✅ `ZohoSearch.securesearch.READ` - Search functionality
+
+### 2. Setup and Installation
+
+<!--
+#### Docker Setup (NOT CURRENTLY WORKING - DISABLED)
+
+Docker support is currently disabled due to npm package installation issues in containerized environments.
+If you need Docker support, please open an issue on GitHub and we can work on a solution.
 
 #### Option A: Docker Setup (Recommended - Easiest) 🐳
 
@@ -104,8 +203,9 @@ curl http://localhost:3001/health
 # View logs
 docker-compose logs -f
 ```
+-->
 
-#### Option B: Manual Setup (Node.js)
+#### Node.js Setup
 
 **Prerequisites:**
 - Node.js (v18 or higher)
@@ -190,7 +290,8 @@ Add to your Claude Desktop configuration file:
 }
 ```
 
-#### For Docker Setup:
+<!--
+#### For Docker Setup (NOT CURRENTLY WORKING - DISABLED):
 ```json
 {
   "mcpServers": {
@@ -208,6 +309,7 @@ Add to your Claude Desktop configuration file:
 cd /path/to/zoho-mcp
 docker build -t zoho-mcp-stdio .
 ```
+-->
 
 ## Usage Examples
 
